@@ -13,7 +13,7 @@ import tensorflow as tf
 ## Data Generator
 
 
-def instantiate_generator(preprocess_function = lambda x : x, train_size = None, test_size = None):
+def instantiate_generator(preprocess_function = lambda x : x, train_size = None, test_size = None, batch_size = 4):
     """
     Instantiate 2 generators of the data using the specified preprocessing function
     """
@@ -46,6 +46,9 @@ def instantiate_generator(preprocess_function = lambda x : x, train_size = None,
         raw_data.append(np.copy(X))
         labels.append(np.copy(Y))
         names.append(file_name)
+    
+    # free memory
+    del f
 
     sample_shape = raw_data[0].shape
     label_shape = labels[0].shape
@@ -65,14 +68,14 @@ def instantiate_generator(preprocess_function = lambda x : x, train_size = None,
         return x, y
     train_data_pipeline = tf.data.Dataset.from_generator(gen_func1,
                                                         output_signature=(tf.TensorSpec(shape=sample_shape,dtype=tf.float32),
-                                                                        tf.TensorSpec(shape=sample_shape,dtype=tf.uint8)))\
+                                                                        tf.TensorSpec(shape=label_shape,dtype=tf.uint8)))\
                                         .map(map_func)\
-                                        .batch(16)
+                                        .batch(batch_size)
     val_data_pipeline = tf.data.Dataset.from_generator(gen_func2,
                                                     output_signature=(tf.TensorSpec(shape=sample_shape,dtype=tf.float32),
-                                                                    tf.TensorSpec(shape=sample_shape,dtype=tf.uint8)))\
+                                                                    tf.TensorSpec(shape=label_shape,dtype=tf.uint8)))\
                                     .map(map_func)\
-                                    .batch(16)
+                                    .batch(batch_size)
     
     return train_data_pipeline, val_data_pipeline
 
