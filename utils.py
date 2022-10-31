@@ -13,7 +13,7 @@ import tensorflow as tf
 ## Data Generator
 
 
-def instantiate_generator(preprocess_function = lambda x : x, train_size = None, test_size = None):
+def instantiate_generator(preprocess_function = lambda x : x, batch_size=16, train_size = None, test_size = None):
     """
     Instantiate 2 generators of the data using the specified preprocessing function
     """
@@ -63,16 +63,18 @@ def instantiate_generator(preprocess_function = lambda x : x, train_size = None,
 
         x = preprocess_function(x)
         return x, y
+    
+    
     train_data_pipeline = tf.data.Dataset.from_generator(gen_func1,
                                                         output_signature=(tf.TensorSpec(shape=sample_shape,dtype=tf.float32),
                                                                         tf.TensorSpec(shape=sample_shape,dtype=tf.uint8)))\
                                         .map(map_func)\
-                                        .batch(16)
+                                        .batch(batch_size)
     val_data_pipeline = tf.data.Dataset.from_generator(gen_func2,
                                                     output_signature=(tf.TensorSpec(shape=sample_shape,dtype=tf.float32),
                                                                     tf.TensorSpec(shape=sample_shape,dtype=tf.uint8)))\
                                     .map(map_func)\
-                                    .batch(16)
+                                    .batch(batch_size)
     
     return train_data_pipeline, val_data_pipeline
 
