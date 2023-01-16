@@ -9,8 +9,11 @@ bin-release/
 
 *.h5
 
-#Donnees du projet dans un fichier challenge_dataset dans le fichier courant
+# Donnees du projet dans un fichier challenge_dataset dans le fichier courant
 ./challenge_dataset
+
+# ignore model saves
+*.hdf5
 
 # Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
 # should NOT be excluded as they contain compiler settings and other important
