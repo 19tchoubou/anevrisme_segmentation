@@ -1,10 +1,6 @@
-from cgi import test
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import h5py # to open the .h5 files
-from ipywidgets import interact, interactive, IntSlider, ToggleButtons
-from IPython.display import clear_output
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
@@ -13,26 +9,22 @@ import tensorflow as tf
 ## Data Generator
 
 
-def instantiate_generator(preprocess_function = lambda x : x, train_size = None, test_size = None):
+def instantiate_generator(PATH_DATASET='./challenge_dataset/', preprocess_function=lambda x : x, batch_size=16, train_size=None, test_size=None):
     """
     Instantiate 2 generators of the data using the specified preprocessing function
     """
-    PATH_DEVICE = './challenge_dataset/'
-
-    data_exists = os.path.exists(PATH_DEVICE)
+    data_exists = os.path.exists(PATH_DATASET)
 
     if data_exists:
-        print(f"Dataset found on device at : '{PATH_DEVICE}.'") 
+        print(f"Dataset found on device at : '{PATH_DATASET}.'") 
     else:
-        raise FileNotFoundError(f"Data folder not found at '{PATH_DEVICE}'")
+        raise FileNotFoundError(f"Data folder not found at '{PATH_DATASET}'")
 
     # get file names in the folder
-    PATH_DATASET = 'challenge_dataset'
-
     file_names = os.listdir(PATH_DATASET)
     N = len(file_names)
 
-    # ## Raw Data and labels
+    # Raw Data and labels
 
     raw_data = []
     labels = []
@@ -63,16 +55,18 @@ def instantiate_generator(preprocess_function = lambda x : x, train_size = None,
 
         x = preprocess_function(x)
         return x, y
+    
+    
     train_data_pipeline = tf.data.Dataset.from_generator(gen_func1,
                                                         output_signature=(tf.TensorSpec(shape=sample_shape,dtype=tf.float32),
                                                                         tf.TensorSpec(shape=sample_shape,dtype=tf.uint8)))\
                                         .map(map_func)\
-                                        .batch(16)
+                                        .batch(batch_size)
     val_data_pipeline = tf.data.Dataset.from_generator(gen_func2,
                                                     output_signature=(tf.TensorSpec(shape=sample_shape,dtype=tf.float32),
                                                                     tf.TensorSpec(shape=sample_shape,dtype=tf.uint8)))\
                                     .map(map_func)\
-                                    .batch(16)
+                                    .batch(batch_size)
     
     return train_data_pipeline, val_data_pipeline
 
