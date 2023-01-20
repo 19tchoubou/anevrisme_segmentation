@@ -1,15 +1,13 @@
-# anevrisme_segmentation
+# 3D intracranial aneurysm semantic segmentation with 3D-Unet
 
-## Data Vizualisation
-Plus ou moins ok sur la partie Voxels 3D.
+In this project, we use various flavors of 3D-Unet to segment intracranial aneurysms in MRI scans.
 
-## Générateur
-Youri et Louis dessus
+The data is made of 103 scans, of shape (103, 64, 192, 192). Their mask are binary segmentations of the aneurysms. Scans are approximatively centered on the biggest aneurysm of the volume.
 
-## Augmentation
-A faire une fois le générateur finalisé.
-Peut-être intéressant de commencer à regarder les modèles.
+To explore your data, run ```explore_data.ipynb```
 
-## Meshing
-Fonction pour trouver les bords -> le plus dur.
-cf David --> canny edge
+To make predictions, you place your data to segment in a ```./to_predict/``` folder and follow the instructions of ```make_predictions.ipynb```. A pretrained model is required for the prediction task.
+
+To train one, run the ```train_3Dunet.ipynb``` notebook and custom your training. We use both custom architectures and pre built ones (using segmentation-models-3d to try various encoder backbones), trained with augmented datsets (using volumentations-3d data augmentation tools).
+
+![](img/scan10_to_gif.gif)
