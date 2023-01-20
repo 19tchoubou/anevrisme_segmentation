@@ -1,74 +1,71 @@
-import numpy as np
 import os
-import h5py # to open the .h5 files
-from sklearn.model_selection import train_test_split
+import numpy as np
+from tqdm import tqdm
+import h5py
+from patchify import patchify # helps cropping images to create more training subimages
+import segmentation_models_3D as sm # pretrained models
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
-import tensorflow as tf
 
-# Store all util functions
-## Data Generator
+def load_data_from(path_folder, crop=None, center_cube_only=False):
 
-
-def instantiate_generator(PATH_DATASET='./challenge_dataset/', preprocess_function=lambda x : x, batch_size=16, train_size=None, test_size=None):
-    """
-    Instantiate 2 generators of the data using the specified preprocessing function
-    """
-    data_exists = os.path.exists(PATH_DATASET)
-
-    if data_exists:
-        print(f"Dataset found on device at : '{PATH_DATASET}.'") 
-    else:
-        raise FileNotFoundError(f"Data folder not found at '{PATH_DATASET}'")
-
-    # get file names in the folder
-    file_names = os.listdir(PATH_DATASET)
+    # get file names
+    file_names = os.listdir(path_folder)
     N = len(file_names)
+    print(f'{N} samples in dataset.')
+    print(file_names)
 
-    # Raw Data and labels
-
+    # open all .h5 files, split inputs and target masks, store all in np.arrays
     raw_data = []
     labels = []
     names = []
 
-    for file_name in file_names:
-        f = h5py.File(f'{PATH_DATASET}/{file_name}', 'r')
+    for file_name in tqdm(file_names):
+        f = h5py.File(f'{path_folder}/{file_name}', 'r')
 
         X, Y = np.array(f['raw']), np.array(f['label'])
 
-        raw_data.append(np.copy(X))
-        labels.append(np.copy(Y))
-        names.append(file_name)
+        if crop is None:
+            raw_data.append(X)
+            labels.append(Y)
+            names.append(file_name)
 
-    sample_shape = raw_data[0].shape
-    label_shape = labels[0].shape
-    assert len(labels) == N and len(names) == N, "Inconsistent lengths"
+        else:
+            if center_cube_only: # only keep the center cube (over 9 candidates)
+                X = X[:,crop:2*crop,crop:2*crop]
+                Y = Y[:,crop:2*crop,crop:2*crop]
 
-    raw_train, raw_test, label_train, label_test = train_test_split(raw_data, labels, train_size=train_size, test_size=test_size)
+                raw_data.append(X)
+                labels.append(Y)
+                names.append(file_name)
 
-    def gen_func1():
-        yield from zip(raw_train, label_train)
-    def gen_func2():
-        yield from zip(raw_test, label_test)
-    def map_func(x, y):
-        # if need preprocess data
-        # write some logic here
+            else: # keep all cubes = more data
+                X_patches = patchify(X, (64, 64, 64), step=64)  # Step=64 for 64 patches means no overlap
+                X_patches_resh = np.reshape(X_patches, (-1, X_patches.shape[3], X_patches.shape[4], X_patches.shape[5]))
+                Y_patches = patchify(Y, (64, 64, 64), step=64)  # Step=64 for 64 patches means no overlap
+                Y_patches_resh = np.reshape(Y_patches, (-1, Y_patches.shape[3], Y_patches.shape[4], Y_patches.shape[5]))
+                raw_data.append(X_patches_resh)
+                labels.append(Y_patches_resh)
+                names.append(file_name)
 
-        x = preprocess_function(x)
-        return x, y
-    
-    
-    train_data_pipeline = tf.data.Dataset.from_generator(gen_func1,
-                                                        output_signature=(tf.TensorSpec(shape=sample_shape,dtype=tf.float32),
-                                                                        tf.TensorSpec(shape=sample_shape,dtype=tf.uint8)))\
-                                        .map(map_func)\
-                                        .batch(batch_size)
-    val_data_pipeline = tf.data.Dataset.from_generator(gen_func2,
-                                                    output_signature=(tf.TensorSpec(shape=sample_shape,dtype=tf.float32),
-                                                                    tf.TensorSpec(shape=sample_shape,dtype=tf.uint8)))\
-                                    .map(map_func)\
-                                    .batch(batch_size)
-    
-    return train_data_pipeline, val_data_pipeline
+    # convert to arrays for patchify
+    raw_data = np.array(raw_data)
+    labels = np.array(labels)
+
+    if (crop is not None) and (not center_cube_only): # only keep the center cube (over 9 candidates)
+        raw_data = np.reshape(raw_data, (-1, raw_data.shape[2], raw_data.shape[3], raw_data.shape[4]))
+        labels = np.reshape(labels, (-1, labels.shape[2], labels.shape[3], labels.shape[4]))
+
+    return raw_data, labels, names
 
 
+def analytics(y_test, y_pred01, threshold=0.5):
+    print(f'------ AFTER THRESHOLDING AT {threshold} ------')
+    print('> sm.metrics.IOUScore :', sm.metrics.IOUScore()(y_test, y_pred01))
 
+    # precision_recall_fscore_support report
+    precision, recall, fscore, support = precision_recall_fscore_support(y_test.flatten(), 
+                                                                      y_pred01.flatten()) 
+    print('> Precision :', precision[1])
+    print('> Recall :', recall[1])
+    print('> Fscore :', fscore[1])
