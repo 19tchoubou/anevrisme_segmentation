@@ -18,6 +18,6 @@ To make predictions, you place your dataset to segment in a ```./to_predict/``` 
 
 To train a model on your own, run the ```train_3Dunet.ipynb``` notebook and custom your training. We use both custom architectures and pre-built ones (using segmentation-models-3d to try various encoder backbones), trained with augmented datsets (using volumentations-3d data augmentation tools).
 
-![](img/scan_10_finetuned_crop.gif.gif)
+![](img/scan_10_finetuned_crop.gif)
 
-![](img/scan_8_finetuned_crop.gif.gif)
+![](img/scan_8_finetuned_crop.gif)
